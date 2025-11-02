@@ -6,8 +6,15 @@ import schedule
 from config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, OKX_API_URL, MAX_WORKERS
 from screener import analyze_symbol, fetch_last_price
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from flask import Flask
 
 POSITIONS_FILE = "positions.json"
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Bot is running"
 
 def fetch_symbols():
     """
@@ -38,81 +45,6 @@ def load_positions():
 def save_positions(positions):
     with open(POSITIONS_FILE, "w") as f:
         json.dump(positions, f, indent=2)
-
-def job():
-    symbols = fetch_symbols()
-    long_candidates = []
-    short_candidates = []
-
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = {executor.submit(analyze_symbol, s): s for s in symbols}
-        for future in as_completed(futures):
-            symbol_name = futures[future]
-            try:
-                result = future.result()
-                if result:
-                    signal, sym, score, tf_detail = result
-                    entry_lines = [f"{sym} (score={score})"]
-                    for tf, val in tf_detail.items():
-                        entry_lines.append(f"   {tf:<4}: LONG={val['LONG']}, SHORT={val['SHORT']}")
-                    entry = "\n".join(entry_lines)
-
-                    if signal == "LONG":
-                        long_candidates.append((score, entry))
-                    elif signal == "SHORT":
-                        short_candidates.append((score, entry))
-            except Exception as e:
-                print(f"Error processing {symbol_name}: {e}")
-
-    # Sort top 5
-    long_candidates = [e[1] for e in sorted(long_candidates, key=lambda x: x[0], reverse=True)[:5]]
-    short_candidates = [e[1] for e in sorted(short_candidates, key=lambda x: x[0], reverse=True)[:5]]
-
-    new_positions = []
-    for c in long_candidates + short_candidates:
-        symbol = c["symbol"]
-        signal = c["signal"]
-        current_price = fetch_last_price(symbol)
-        new_positions.append({
-            "symbol": symbol,
-            "signal": signal,
-            "entry_price": current_price,
-            "pnl": 0
-        })
-
-    save_positions(new_positions)
-
-    if long_candidates:
-        long_msg = "🚀 LONG Candidates:\n" + "\n\n".join(long_candidates)
-        send_telegram_message(long_msg)
-    else:
-        send_telegram_message("✅ Tidak ada peluang LONG saat ini.")
-
-    if short_candidates:
-        short_msg = "📉 SHORT Candidates:\n" + "\n\n".join(short_candidates)
-        send_telegram_message(short_msg)
-    else:
-        send_telegram_message("✅ Tidak ada peluang SHORT saat ini.")
-
-def format_pnl_message(positions):
-    long_pos = [p for p in positions if p["signal"] == "LONG"]
-    short_pos = [p for p in positions if p["signal"] == "SHORT"]
-
-    msg_lines = ["📊 Posisi Terbuka PnL:\n"]
-
-    if long_pos:
-        msg_lines.append("🚀 LONG:")
-        for p in long_pos:
-            msg_lines.append(f"{p['symbol']:<16}: {p['pnl']:>6.2f}%")
-        msg_lines.append("")  # spasi
-
-    if short_pos:
-        msg_lines.append("📉 SHORT:")
-        for p in short_pos:
-            msg_lines.append(f"{p['symbol']:<16}: {p['pnl']:>6.2f}%")
-        msg_lines.append("")
-
-    return "\n".join(msg_lines)
 
 # ==================== JOB 30 MENIT ====================
 def job_signal():
@@ -223,9 +155,30 @@ def job_pnl():
 
     send_telegram_message(msg)
 
-if __name__ == '__main__':
-    schedule.every(30).minutes.do(job_signal())
-    schedule.every(5).minutes.do(job_pnl())
+
+@app.route("/signal")
+def run_signal():
+    job_signal()
+    return "job_signal executed"
+
+
+@app.route("/pnl")
+def run_pnl():
+    job_pnl()
+    return "job_pnl executed"
+
+
+if __name__ == "__main__":
+    from threading import Thread
+
+    # Jalankan Flask server di background
+    Thread(target=lambda: app.run(host="0.0.0.0", port=3000)).start()
+
+    # Schedule job lokal (backup kalau ping dari luar mati)
+    import schedule
+
+    schedule.every(30).minutes.do(job_signal)
+    schedule.every(5).minutes.do(job_pnl)
     while True:
         schedule.run_pending()
         time.sleep(10)
