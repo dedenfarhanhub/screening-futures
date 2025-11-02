@@ -34,6 +34,7 @@ def send_telegram_message(text):
         "text": text,
         "parse_mode": "HTML"
     })
+    print(res.json())
 
 def load_positions():
     try:
@@ -122,6 +123,7 @@ def job_pnl():
     for p in positions:
         current_price = fetch_last_price(p["symbol"])
         signal = p["signal"]
+
         if signal == "LONG":
             pnl = (current_price - p["entry_price"]) / p["entry_price"] * 100
         else:  # SHORT
@@ -135,7 +137,13 @@ def job_pnl():
         else:
             emoji = "⚪"
 
-        line = f"{emoji} {p['symbol']:<16}: {pnl:>6.2f}%"
+        # Tambahkan entry price dan marked price
+        line = (
+            f"{emoji} {p['symbol']:<16} | "
+            f"Entry: {p['entry_price']:.4f} | "
+            f"Mark: {current_price:.4f} | "
+            f"PnL: {pnl:>6.2f}%"
+        )
 
         if signal == "LONG":
             long_msgs.append(line)
