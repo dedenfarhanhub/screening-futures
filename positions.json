@@ -1,62 +1,62 @@
 [
   {
-    "symbol": "RECALL-USDT-SWAP",
+    "symbol": "BARD-USDT-SWAP",
     "signal": "LONG",
-    "entry_price": 0.2966,
+    "entry_price": 0.6744,
     "pnl": 0
   },
   {
-    "symbol": "INIT-USDT-SWAP",
+    "symbol": "MORPHO-USDT-SWAP",
     "signal": "LONG",
-    "entry_price": 0.1462,
+    "entry_price": 2.0309,
     "pnl": 0
   },
   {
-    "symbol": "TRUMP-USDT-SWAP",
+    "symbol": "XAUT-USDT-SWAP",
     "signal": "LONG",
-    "entry_price": 7.603,
+    "entry_price": 4001.4,
     "pnl": 0
   },
   {
-    "symbol": "LAB-USDT-SWAP",
+    "symbol": "CELO-USDT-SWAP",
     "signal": "LONG",
-    "entry_price": 0.17967,
+    "entry_price": 0.2689,
     "pnl": 0
   },
   {
-    "symbol": "SHELL-USDT-SWAP",
+    "symbol": "GMX-USDT-SWAP",
     "signal": "LONG",
-    "entry_price": 0.11922,
+    "entry_price": 9.84,
     "pnl": 0
   },
   {
-    "symbol": "ETH-USDT-SWAP",
+    "symbol": "BCH-USDT-SWAP",
     "signal": "SHORT",
-    "entry_price": 3870.3,
+    "entry_price": 530.9,
     "pnl": 0
   },
   {
-    "symbol": "DOGE-USDT-SWAP",
+    "symbol": "MERL-USDT-SWAP",
     "signal": "SHORT",
-    "entry_price": 0.18605,
+    "entry_price": 0.30845,
     "pnl": 0
   },
   {
-    "symbol": "0G-USDT-SWAP",
+    "symbol": "BLUAI-USDT-SWAP",
     "signal": "SHORT",
-    "entry_price": 1.0144,
+    "entry_price": 0.01984,
     "pnl": 0
   },
   {
-    "symbol": "CRV-USDT-SWAP",
+    "symbol": "IP-USDT-SWAP",
     "signal": "SHORT",
-    "entry_price": 0.4765,
+    "entry_price": 4.331,
     "pnl": 0
   },
   {
-    "symbol": "QTUM-USDT-SWAP",
+    "symbol": "PEOPLE-USDT-SWAP",
     "signal": "SHORT",
-    "entry_price": 1.899,
+    "entry_price": 0.01153,
     "pnl": 0
   }
 ]

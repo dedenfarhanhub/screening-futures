@@ -102,3 +102,47 @@ def fetch_last_price(symbol):
     except Exception as e:
         print(f"Error fetch_last_price {symbol}: {e}")
     return None
+
+
+import ta
+
+def swing_trade_levels(df, lookback=90, atr_len=14):
+    """
+    Gemini Dynamic Trade Planner logic
+    Logic fixed supaya tidak error dan tetap akurat.
+    """
+    # Hanya ambil lookback terakhir
+    lookback = min(lookback, len(df))
+    df = df[-lookback:].copy()
+
+    # Pastikan tidak ada NaN
+    df = df.dropna(subset=['high', 'low', 'close'])
+    if df.empty:
+        raise ValueError("Dataframe kosong setelah dropna")
+
+    lowest_low = df['low'].min()
+    highest_high = df['high'].max()
+    price_range = highest_high - lowest_low
+
+    # ATR terakhir, window <= lookback
+    atr_window = min(atr_len, len(df))
+    atr_series = ta.volatility.AverageTrueRange(df['high'], df['low'], df['close'], window=atr_window).average_true_range()
+    atr = atr_series.iloc[-1]  # ini selalu safe karena df sudah cukup
+
+    # Level
+    cl_level = lowest_low - (atr * 0.25)
+    entry_bottom = lowest_low
+    entry_top = lowest_low + atr * 1.0
+
+    tp1 = lowest_low + price_range * 0.382
+    tp2 = lowest_low + price_range * 0.618
+    tp3 = highest_high
+
+    return {
+        "CL": cl_level,
+        "ENTRY_BOTTOM": entry_bottom,
+        "ENTRY_TOP": entry_top,
+        "TP1": tp1,
+        "TP2": tp2,
+        "TP3": tp3
+    }

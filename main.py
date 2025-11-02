@@ -4,11 +4,12 @@ import requests
 import time
 import schedule
 from config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, OKX_API_URL, MAX_WORKERS
-from screener import analyze_symbol, fetch_last_price
+from screener import analyze_symbol, fetch_last_price, swing_trade_levels, fetch_klines
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask
 
 POSITIONS_FILE = "positions.json"
+POSITIONS_FILE_SWING = "position_swings.json"
 
 app = Flask(__name__)
 
@@ -45,6 +46,18 @@ def load_positions():
 
 def save_positions(positions):
     with open(POSITIONS_FILE, "w") as f:
+        json.dump(positions, f, indent=2)
+
+
+def load_position_swings():
+    try:
+        with open(POSITIONS_FILE_SWING, "r") as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_position_swings(positions):
+    with open(POSITIONS_FILE_SWING, "w") as f:
         json.dump(positions, f, indent=2)
 
 # ==================== JOB 30 MENIT ====================
@@ -164,16 +177,109 @@ def job_pnl():
     send_telegram_message(msg)
 
 
+# ==================== JOB SWING SIGNAL ====================
+def job_swing_signal():
+    symbols = fetch_symbols()
+    swing_candidates = []
+    new_positions = []  # untuk save ke file swing
+
+    def process_symbol(sym):
+        for attempt in range(3):  # retry 3x
+            try:
+                df = fetch_klines(sym, interval="1D")
+                if df is None or df.empty or len(df) < 20:
+                    time.sleep(0.5)  # delay sebentar sebelum retry
+                    continue
+
+                levels = swing_trade_levels(df)
+                last_price = df['close'].iloc[-1]
+                signal = "LONG" if last_price <= levels["ENTRY_TOP"] else "WAIT"
+                if signal != "LONG":
+                    return None
+
+                return {
+                    "symbol": sym,
+                    "signal": signal,
+                    "last_price": last_price,
+                    "levels": levels,
+                    "entry_zone": (levels["ENTRY_BOTTOM"], levels["ENTRY_TOP"])
+                }
+            except Exception as e:
+                print(f"Attempt {attempt+1} error for {sym}: {e}")
+                time.sleep(0.5)
+        return None
+
+    batch_size = 10
+    for i in range(0, len(symbols), batch_size):
+        batch = symbols[i:i+batch_size]
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures = {executor.submit(process_symbol, s): s for s in batch}
+            for future in as_completed(futures):
+                res = future.result()
+                if res:
+                    entry_lines = [
+                        f"{res['symbol']}",
+                        f"   Entry: {res['entry_zone'][0]:.4f} - {res['entry_zone'][1]:.4f}",
+                    ]
+                    swing_candidates.append({
+                        "symbol": res["symbol"],
+                        "signal": res["signal"],
+                        "entry_text": "\n".join(entry_lines)
+                    })
+                    # Save posisi swing
+                    new_positions.append({
+                        "symbol": res["symbol"],
+                        "signal": res["signal"],
+                        "entry_price": res["last_price"],
+                        "pnl": 0
+                    })
+
+    # Simpan ke file swing
+    save_position_swings(new_positions)
+
+    if swing_candidates:
+        send_telegram_message("📊 SWING Candidates:\n\n" + "\n\n".join([c["entry_text"] for c in swing_candidates]))
+    else:
+        send_telegram_message("✅ Tidak ada peluang SWING saat ini.")
+
+
+
+# ==================== JOB PNL SWING 10 MENIT ====================
+def job_swing_pnl():
+    positions = load_position_swings()
+    if not positions:
+        return
+
+    msgs = []
+    for p in positions:
+        current_price = fetch_last_price(p["symbol"])
+        pnl = (current_price - p["entry_price"]) / p["entry_price"] * 100
+        emoji = "🟢" if pnl > 0 else "🔴" if pnl < 0 else "⚪"
+        line = f"{emoji} {p['symbol']:<16} | Entry: {p['entry_price']:.4f} | Mark: {current_price:.4f} | PnL: {pnl:>6.2f}%"
+        msgs.append(line)
+        p["pnl"] = pnl
+
+    save_positions(positions)
+    msg_text = "📊 SWING PnL Update:\n" + "\n".join(msgs)
+    send_telegram_message(msg_text)
+
 @app.route("/signal")
 def run_signal():
     job_signal()
     return "job_signal executed"
-
-
 @app.route("/pnl")
 def run_pnl():
     job_pnl()
     return "job_pnl executed"
+
+@app.route("/signal-swing")
+def run_signal_swing():
+    job_swing_signal()
+    return "job_swing_signal executed"
+@app.route("/pnl-swing")
+def run_pnl_swing():
+    job_swing_pnl()
+    return "job_swing_pnl executed"
 
 
 if __name__ == "__main__":
@@ -186,7 +292,9 @@ if __name__ == "__main__":
     import schedule
 
     schedule.every(30).minutes.do(job_signal)
+    schedule.every(60).minutes.do(job_swing_signal)
     schedule.every(5).minutes.do(job_pnl)
+    schedule.every(10).minutes.do(job_swing_pnl)
     while True:
         schedule.run_pending()
         time.sleep(10)
