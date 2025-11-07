@@ -1,62 +1,38 @@
 [
   {
-    "symbol": "BARD-USDT-SWAP",
+    "symbol": "CROSSUSDTM",
     "signal": "LONG",
-    "entry_price": 0.6744,
+    "entry_price": null,
     "pnl": 0
   },
   {
-    "symbol": "MORPHO-USDT-SWAP",
+    "symbol": "BASUSDTM",
     "signal": "LONG",
-    "entry_price": 2.0309,
+    "entry_price": null,
     "pnl": 0
   },
   {
-    "symbol": "XAUT-USDT-SWAP",
+    "symbol": "SIGNUSDTM",
     "signal": "LONG",
-    "entry_price": 4001.4,
+    "entry_price": null,
     "pnl": 0
   },
   {
-    "symbol": "CELO-USDT-SWAP",
+    "symbol": "STBLUSDTM",
     "signal": "LONG",
-    "entry_price": 0.2689,
+    "entry_price": null,
     "pnl": 0
   },
   {
-    "symbol": "GMX-USDT-SWAP",
+    "symbol": "PIXELUSDTM",
     "signal": "LONG",
-    "entry_price": 9.84,
+    "entry_price": null,
     "pnl": 0
   },
   {
-    "symbol": "BCH-USDT-SWAP",
+    "symbol": "KCSUSDTM",
     "signal": "SHORT",
-    "entry_price": 530.9,
-    "pnl": 0
-  },
-  {
-    "symbol": "MERL-USDT-SWAP",
-    "signal": "SHORT",
-    "entry_price": 0.30845,
-    "pnl": 0
-  },
-  {
-    "symbol": "BLUAI-USDT-SWAP",
-    "signal": "SHORT",
-    "entry_price": 0.01984,
-    "pnl": 0
-  },
-  {
-    "symbol": "IP-USDT-SWAP",
-    "signal": "SHORT",
-    "entry_price": 4.331,
-    "pnl": 0
-  },
-  {
-    "symbol": "PEOPLE-USDT-SWAP",
-    "signal": "SHORT",
-    "entry_price": 0.01153,
+    "entry_price": null,
     "pnl": 0
   }
 ]
